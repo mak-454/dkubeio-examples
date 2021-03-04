@@ -50,9 +50,9 @@
 
 ## Sonar Test Inference:
 1. Go to model r-sonar and create test inference.
-2. Build the custom serving image from sonar/Dockerflie or use image `docker.io/ocdr/custom-kfserving:R-sonar` as serving the image, don’t check for the transformer.
+2. Build the custom serving image from sonar/Dockerflie or use image `docker.io/ocdr/custom-kfserving:R-sonar-mm` as serving the image, don’t check for the transformer.
 3. Use sample.json from serving folder and run `curl -kv --location --request POST serving_url --header "Authorization: Bearer TOKEN" --header "Content-Type: application/json"  -d @sample.json`
-4. Expected Output: `{"data":{Object":[["R"]]}}`
+4. Expected Output: `{"data":{"model":"<name-of-the-model>","Object":[["R"]]}}`
 
 
 

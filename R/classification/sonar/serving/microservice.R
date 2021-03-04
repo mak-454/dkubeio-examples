@@ -5,6 +5,8 @@ library(methods)
 library(urltools)
 library(stringi)
 
+source("loader.R")
+
 parseQS <- function(qs){
   if (is.null(qs) || length(qs) == 0 || qs == "") {
     return(list())
@@ -72,7 +74,20 @@ validate_feedback <- function(jdf) {
   }
 }
 
-
+create_model_response <- function(name, req_df, res_df) {
+  if ("V1" %in% names(req_df$data)){
+    templ <- '{"data":{"model":"%s","Object":"%s"}}'
+    names <- toJSON(colnames(res_df))
+    values <- toJSON(as.matrix(res_df))
+    sprintf(templ,name,values)
+  } else {
+    templ <- '{"data":{"model":"%s","Object":"%s"}}'
+    names <- toJSON(colnames(res_df))
+    values <- toJSON(c(res_df))
+    dims <- toJSON(dim(res_df))
+    sprintf(templ,name,dims,values)
+  }
+}
 
 create_response <- function(req_df,res_df){
   if ("V1" %in% names(req_df$data)){
@@ -101,21 +116,27 @@ parse_data <- function(req){
 }
 
 predict_endpoint <- function(req,res,json=NULL,isDefault=NULL) {
-  #for ( obj in ls(req) ) { 
-    #print(c(obj,get(obj,envir = req))) 
-  #}
   json <- parse_data(req) # Hack as Plumber using URLDecode which doesn't decode +
   jdf <- fromJSON(json)
   valid_input <- validate_json(jdf)
   if (valid_input[1] == "OK") {
-    scores <- predict(user_model,newdata=jdf) # predict function call from sonar.R
-    res_json = create_response(jdf,scores)
-    res$body <- res_json
-    res
+    models <- load_models(model_base_path, jdf)
+    if(length(models)==0) {
+      res$status <- 400 # Bad request
+      return(res)
+    }
+    for (name in names(models)) {
+      model <- models[[name]]
+      scores <- predict(model,newdata=jdf) # predict function call from sonar.R
+      res_json = create_model_response(name,jdf,scores)
+      res$body <- res_json
+    }
   } else {
     res$status <- 400 # Bad request
     list(error=jsonlite::unbox(valid_input))
   }
+  
+  return(res)
 }
 
 send_feedback_endpoint <- function(req,res,json=NULL,isDefault=NULL) {
@@ -280,8 +301,6 @@ model_file <- sprintf("%s/model.rds", model_base_path)
 
 source(args$model)
 #source(args$transformer)
-#dkube-kfserving - pass the model_file to this function
-user_model <- initialise_seldon(model_file, params)
 
 # Setup generics
 # Predict already exists in base R

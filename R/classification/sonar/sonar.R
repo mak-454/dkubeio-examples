@@ -5,7 +5,7 @@ library(randomForest)
 library(doMC)
 library(mlflow)
 
-OUT_DIR <- "/opt/dkube/model/"
+OUT_DIR <- "/opt/dkube/model"
 
 registerDoMC(cores=8)
 # load dataset
@@ -30,4 +30,5 @@ mlflow_log_metric("Prevalence", Prevalence)
 mlflow_log_metric("Sensitivity", Sensitivity)
 mlflow_log_metric("Accuracy", accuracy)
 # save the model to disk
-saveRDS(model, sprintf("%smodel.rds", OUT_DIR))
+dir.create(sprintf("%s/sonar", OUT_DIR))
+saveRDS(model, sprintf("%s/sonar/model.rds", OUT_DIR))
